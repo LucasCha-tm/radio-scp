@@ -1,0 +1,34 @@
+name: RadioPlugin
+version: '1.0.0'
+main: fr.lucascha.radio.RadioPlugin
+api-version: '1.21'
+authors: [ LucasCha ]
+description: Plugin Radio / Talkie-Walkie
+softdepend:
+  - voicechat
+  - LuckPerms
+
+commands:
+  radio:
+    description: Commandes Radio
+    usage: /radio <help|reload|give|info>
+
+permissions:
+  radio.give:
+    default: op
+  radio.reload:
+    default: op
+  radio.info:
+    default: true
+  radio.frequency.secu:
+    default: true
+  radio.frequency.scientos:
+    default: true
+  radio.frequency.admin:
+    default: op
+  radio.frequency.dist:
+    default: true
+  radio.frequency.medecin:
+    default: true
+  radio.frequency.ic:
+    default: false

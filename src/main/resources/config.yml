@@ -1,0 +1,8 @@
+messages:
+  prefix: "&8[&6Radio&8] &r"
+  no-permission: "&cVous n'avez pas la permission d'acceder a cette frequence."
+  not-talkie: "&cCet item n'est pas un Talkie-Walkie."
+  frequency-changed: "&aFrequence changee : {freq}"
+  already-on-freq: "&eVous etes deja sur cette frequence."
+  ic-restricted: "&4&lACCES REFUSE &c- Frequence IC/Chaos Insurgency restreinte."
+  reload-done: "&aConfiguration rechargee."
