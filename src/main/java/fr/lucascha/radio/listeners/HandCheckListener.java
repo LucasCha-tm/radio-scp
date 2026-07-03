@@ -74,18 +74,18 @@ public class HandCheckListener implements Listener {
                         micActive.add(uuid);
                     } else {
                         // Rejoint le groupe mais micro coupé immédiatement
-                        VoiceChatManager.getInstance().muteInGroup(player);
+                        VoiceChatManager.getInstance().blockMic(player);
                     }
                 }
             } else {
                 // Déjà dans le groupe : mettre à jour l'état du micro selon la main
                 if (holdingTalkie && !micActive.contains(uuid)) {
                     // Vient de reprendre le talkie en main → micro ON
-                    VoiceChatManager.getInstance().unmuteInGroup(player);
+                    VoiceChatManager.getInstance().unblockMic(player);
                     micActive.add(uuid);
                 } else if (!holdingTalkie && micActive.contains(uuid)) {
                     // Vient de lâcher le talkie → micro OFF (reste dans le groupe)
-                    VoiceChatManager.getInstance().muteInGroup(player);
+                    VoiceChatManager.getInstance().blockMic(player);
                     micActive.remove(uuid);
                 }
             }

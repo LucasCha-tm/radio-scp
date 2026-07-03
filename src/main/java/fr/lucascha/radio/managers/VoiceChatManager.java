@@ -7,6 +7,7 @@ import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatPlugin;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.events.EventRegistration;
+import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
 import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
 import de.maxhenkel.voicechat.api.events.VoicechatServerStoppedEvent;
 import fr.lucascha.radio.RadioPlugin;
@@ -15,7 +16,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public class VoiceChatManager implements VoicechatPlugin {
 
@@ -23,6 +27,12 @@ public class VoiceChatManager implements VoicechatPlugin {
     private static VoicechatServerApi voicechatApi;
     private boolean available = false;
     private final Map<Frequency, Group> groups = new EnumMap<>(Frequency.class);
+
+    /**
+     * Joueurs dont le micro est BLOQUÉ côté serveur (talkie pas en main).
+     * Leur audio sera ignoré par l'event MicrophonePacketEvent.
+     */
+    private final Set<UUID> blockedMic = new HashSet<>();
 
     public static VoiceChatManager getInstance() {
         if (instance == null) instance = new VoiceChatManager();
@@ -51,6 +61,7 @@ public class VoiceChatManager implements VoicechatPlugin {
     public void registerEvents(EventRegistration registration) {
         registration.registerEvent(VoicechatServerStartedEvent.class, this::onServerStarted);
         registration.registerEvent(VoicechatServerStoppedEvent.class, this::onServerStopped);
+        registration.registerEvent(MicrophonePacketEvent.class, this::onMicrophonePacket);
     }
 
     private void onServerStarted(VoicechatServerStartedEvent event) {
@@ -71,10 +82,23 @@ public class VoiceChatManager implements VoicechatPlugin {
     private void onServerStopped(VoicechatServerStoppedEvent event) {
         available = false;
         groups.clear();
+        blockedMic.clear();
     }
 
     /**
-     * Rejoindre le groupe vocal d'une fréquence (sans mute).
+     * Intercepte les paquets audio : si le joueur est dans blockedMic,
+     * on annule le paquet → les autres membres du groupe n'entendent rien.
+     */
+    private void onMicrophonePacket(MicrophonePacketEvent event) {
+        VoicechatConnection connection = event.getSenderConnection();
+        if (connection == null) return;
+        if (blockedMic.contains(connection.getPlayer().getUuid())) {
+            event.cancel();
+        }
+    }
+
+    /**
+     * Rejoindre le groupe vocal avec micro actif (talkie en main).
      */
     public boolean joinFrequency(Player player, Frequency frequency) {
         if (!available || voicechatApi == null) return false;
@@ -83,43 +107,39 @@ public class VoiceChatManager implements VoicechatPlugin {
         Group group = groups.get(frequency);
         if (group == null) return false;
         connection.setGroup(group);
-        connection.setMuted(false); // talkie en main → peut parler
+        blockedMic.remove(player.getUniqueId()); // micro actif
         return true;
     }
 
     /**
-     * Reste dans le groupe mais coupe le micro (talkie retiré de la main).
-     * Le joueur entend toujours les autres, mais ne peut plus parler.
+     * Reste dans le groupe mais bloque le micro (talkie retiré de la main).
+     * Le joueur entend toujours les autres, mais ne peut pas parler.
      */
-    public void muteInGroup(Player player) {
-        if (!available || voicechatApi == null) return;
-        VoicechatConnection connection = voicechatApi.getConnectionOf(player.getUniqueId());
-        if (connection == null) return;
-        connection.setMuted(true);
+    public void blockMic(Player player) {
+        blockedMic.add(player.getUniqueId());
     }
 
     /**
      * Réactive le micro (talkie repris en main).
      */
-    public void unmuteInGroup(Player player) {
-        if (!available || voicechatApi == null) return;
-        VoicechatConnection connection = voicechatApi.getConnectionOf(player.getUniqueId());
-        if (connection == null) return;
-        connection.setMuted(false);
+    public void unblockMic(Player player) {
+        blockedMic.remove(player.getUniqueId());
     }
 
     /**
-     * Quitter complètement le groupe vocal (déconnexion du talkie / quit serveur).
+     * Quitter complètement le groupe vocal.
      */
     public void leaveGroup(Player player) {
         if (!available || voicechatApi == null) return;
         VoicechatConnection connection = voicechatApi.getConnectionOf(player.getUniqueId());
         if (connection == null) return;
-        connection.setMuted(false);
+        blockedMic.remove(player.getUniqueId());
         connection.setGroup(null);
     }
 
-    public void onPlayerQuit(Player player) { leaveGroup(player); }
+    public void onPlayerQuit(Player player) {
+        leaveGroup(player);
+    }
 
     public boolean isAvailable() { return available; }
 }
