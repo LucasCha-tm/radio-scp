@@ -53,9 +53,9 @@ public class RadioManager {
             TalkieWalkieItem.updateFrequency(handItem, frequency);
         }
 
-        // Forcer la vérification de main immédiatement
-        // (connecte au vocal si le talkie est bien en main)
+        // Réinitialiser l'état vocal du joueur pour forcer le changement de groupe
         if (handCheckListener != null) {
+            handCheckListener.resetVoiceState(player);  // <-- force le changement de groupe
             handCheckListener.checkHand(player);
         }
 
